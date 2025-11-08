@@ -1,0 +1,4 @@
+transaction_date,total_amount,quantity,transaction_count,unique_customers,unit_price,product_category,average_transaction,customer_id,product_category_encoded
+2025-11-04,119.0,19,19,10,6.2631578947368425,Spices & Condiments,6.2631578947368425,CUST_001,1
+2025-11-05,47.5,9,8,7,5.5625,Health & Personal Care,5.9375,CUST_001,1
+2025-11-06,97.5,27,25,19,3.9,Snacks,3.9,CUST_001,1

@@ -1,0 +1,51 @@
+transaction_id,customer_id,product_name,category,quantity,unit_price,total_amount,payment_method,transaction_date,day_of_week
+TXN_000001,CUST_00001,Apples,Fruits,2,8.00,16.00,cash,2025-11-04,Monday
+TXN_000002,CUST_00002,Pears,Fruits,1,4.00,4.00,cash,2025-11-04,Monday
+TXN_000003,CUST_00003,Maize,Food,3,7.00,21.00,cash,2025-11-04,Monday
+TXN_000004,CUST_00004,Srimoral,Food,2,1.00,2.00,cash,2025-11-04,Monday
+TXN_000005,CUST_00005,Chief,Food,1,14.00,14.00,cash,2025-11-04,Monday
+TXN_000006,CUST_00006,Soybean,Food,4,3.00,12.00,cash,2025-11-04,Monday
+TXN_000007,CUST_00007,Halls,Personal Care,5,2.50,12.50,cash,2025-11-04,Monday
+TXN_000008,CUST_00008,Potatoes,Vegetables,2,9.00,18.00,cash,2025-11-04,Monday
+TXN_000009,CUST_00009,Hot Chili,Spices,1,6.00,6.00,cash,2025-11-04,Monday
+TXN_000010,CUST_00010,Raizler,Food,3,6.00,18.00,cash,2025-11-04,Monday
+TXN_000011,CUST_00011,Chappies,Snacks,10,0.50,5.00,cash,2025-11-04,Monday
+TXN_000012,CUST_00012,Drink Opop,Beverages,1,1.50,1.50,cash,2025-11-04,Monday
+TXN_000013,CUST_00013,Lingoa,Food,1,25.00,25.00,cash,2025-11-04,Monday
+TXN_000014,CUST_00014,Mello,Food,2,1.00,2.00,cash,2025-11-04,Monday
+TXN_000015,CUST_00015,Milk Malka,Beverages,2,3.00,6.00,cash,2025-11-04,Monday
+TXN_000016,CUST_00016,Likoankoara,Food,1,4.00,4.00,cash,2025-11-04,Monday
+TXN_000017,CUST_00017,Pin Pop,Snacks,1,1.50,1.50,cash,2025-11-04,Monday
+TXN_000018,CUST_00018,Cornel,Food,1,3.00,3.00,cash,2025-11-04,Monday
+TXN_000019,CUST_00002,Srimoral,Food,1,1.00,1.00,cash,2025-11-05,Tuesday
+TXN_000020,CUST_00020,Biscuits,Snacks,2,3.00,6.00,cash,2025-11-05,Tuesday
+TXN_000021,CUST_00021,Potatoes,Vegetables,3,9.00,27.00,cash,2025-11-05,Tuesday
+TXN_000022,CUST_00022,Maize,Food,1,7.00,7.00,cash,2025-11-05,Tuesday
+TXN_000023,CUST_00023,Chief,Food,1,14.00,14.00,cash,2025-11-05,Tuesday
+TXN_000024,CUST_00024,Mello,Food,1,1.00,1.00,cash,2025-11-05,Tuesday
+TXN_000025,CUST_00025,Raizleys,Snacks,2,1.00,2.00,cash,2025-11-05,Tuesday
+TXN_000026,CUST_00026,Likoankoara,Food,1,4.00,4.00,cash,2025-11-05,Tuesday
+TXN_000027,CUST_00003,Chappies,Snacks,6,0.50,3.00,cash,2025-11-06,Wednesday
+TXN_000028,CUST_00028,Smoothies,Beverages,1,1.00,1.00,cash,2025-11-06,Wednesday
+TXN_000029,CUST_00029,Max Max,Food,2,1.00,2.00,cash,2025-11-06,Wednesday
+TXN_000030,CUST_00030,Courtleigh,Food,1,3.00,3.00,cash,2025-11-06,Wednesday
+TXN_000031,CUST_00031,Milk Malka,Beverages,2,3.00,6.00,cash,2025-11-06,Wednesday
+TXN_000032,CUST_00032,Drink Opop,Beverages,1,1.50,1.50,cash,2025-11-06,Wednesday
+TXN_000033,CUST_00033,Hot Chili,Spices,1,6.00,6.00,cash,2025-11-06,Wednesday
+TXN_000034,CUST_00034,Raizleys,Snacks,1,1.00,1.00,cash,2025-11-06,Wednesday
+TXN_000035,CUST_00035,Corn Chips,Snacks,1,1.50,1.50,cash,2025-11-06,Wednesday
+TXN_000036,CUST_00036,Halls,Personal Care,2,2.50,5.00,cash,2025-11-06,Wednesday
+TXN_000037,CUST_00037,Raizleys,Snacks,2,1.00,2.00,cash,2025-11-06,Wednesday
+TXN_000038,CUST_00038,Imana,Food,1,2.00,2.00,cash,2025-11-06,Wednesday
+TXN_000039,CUST_00039,Peri Peri,Spices,1,2.50,2.50,cash,2025-11-06,Wednesday
+TXN_000040,CUST_00005,Pears,Fruits,1,3.00,3.00,cash,2025-11-06,Wednesday
+TXN_000041,CUST_00041,Likoankoara,Food,2,4.00,8.00,cash,2025-11-06,Wednesday
+TXN_000042,CUST_00042,Biscuits,Snacks,2,3.00,6.00,cash,2025-11-06,Wednesday
+TXN_000043,CUST_00043,Chief,Food,1,14.00,14.00,cash,2025-11-06,Wednesday
+TXN_000044,CUST_00044,Mello,Food,1,1.00,1.00,cash,2025-11-06,Wednesday
+TXN_000045,CUST_00045,Raizleys,Snacks,1,1.00,1.00,cash,2025-11-06,Wednesday
+TXN_000046,CUST_00046,Drink Opop,Beverages,1,1.50,1.50,cash,2025-11-06,Wednesday
+TXN_000047,CUST_00047,Apple Juice,Beverages,1,3.00,3.00,cash,2025-11-06,Wednesday
+TXN_000048,CUST_00048,Tomatoes,Vegetables,3,1.00,3.00,cash,2025-11-06,Wednesday
+TXN_000049,CUST_00049,Srimoral Spice,Spices,1,1.00,1.00,cash,2025-11-06,Wednesday
+TXN_000050,CUST_00050,Cornflakes,Food,1,6.00,6.00,cash,2025-11-06,Wednesday

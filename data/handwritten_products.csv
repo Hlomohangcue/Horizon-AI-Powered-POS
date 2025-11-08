@@ -1,0 +1,31 @@
+product_id,product_name,category,unit_price,stock_quantity
+PROD001,Apples,Fruits,8.00,100
+PROD002,Pears,Fruits,4.00,80
+PROD003,Maize,Food,7.00,150
+PROD004,Srimoral,Food,1.00,200
+PROD005,Chief,Food,14.00,60
+PROD006,Soybean,Food,3.00,120
+PROD007,Halls,Personal Care,2.50,150
+PROD008,Potatoes,Vegetables,9.00,90
+PROD009,Hot Chili,Spices,6.00,50
+PROD010,Raizler,Food,6.00,40
+PROD011,Chappies,Snacks,0.50,300
+PROD012,Drink Opop,Beverages,1.50,80
+PROD013,Lingoa,Food,25.00,30
+PROD014,Mello,Food,1.00,100
+PROD015,Milk Malka,Beverages,3.00,60
+PROD016,Likoankoara,Food,4.00,70
+PROD017,Pin Pop,Snacks,1.50,120
+PROD018,Cornel,Food,3.00,90
+PROD019,Smoothies,Beverages,1.00,150
+PROD020,Max Max,Food,1.00,200
+PROD021,Courtleigh,Food,3.00,80
+PROD022,Corn Chips,Snacks,1.50,100
+PROD023,Raizleys,Snacks,1.00,180
+PROD024,Imana,Food,2.00,120
+PROD025,Peri Peri,Spices,2.50,90
+PROD026,Apple Juice,Beverages,3.00,70
+PROD027,Tomatoes,Vegetables,1.00,100
+PROD028,Srimoral Spice,Spices,1.00,150
+PROD029,Biscuits,Snacks,3.00,110
+PROD030,Cornflakes,Food,6.00,40

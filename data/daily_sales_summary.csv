@@ -1,0 +1,4 @@
+transaction_date,day_of_week,total_sales,total_transactions,unique_customers,top_category,avg_transaction_value
+2025-11-04,Monday,97.00,18,18,Food,5.39
+2025-11-05,Tuesday,62.00,8,8,Food,7.75
+2025-11-06,Wednesday,76.00,24,22,Snacks,3.17

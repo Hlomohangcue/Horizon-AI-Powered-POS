@@ -1,0 +1,9 @@
+transaction_date,total_amount,quantity,transaction_count,unique_customers,category
+2025-06-11,142.5,29,19,16,Food
+2025-07-11,132.0,35,18,17,Food
+2025-08-10,96.0,20,14,14,Food
+2025-09-09,89.5,16,11,10,Food
+2025-10-09,80.0,21,12,12,Snacks
+2025-11-04,171.5,43,18,18,Food
+2025-11-05,62.0,12,8,8,Food
+2025-11-06,84.0,37,24,24,Food
