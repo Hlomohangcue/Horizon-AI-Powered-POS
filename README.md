@@ -11,6 +11,11 @@
 ## 🎯 Project Description
 A comprehensive Point of Sale (POS) system designed for Horizon Enterprise in Lesotho, featuring AI-powered analytics, inventory management, and sales processing with complete Streamlit web interface.
 
+## 🌐 Live Demo
+**Try the application now:** https://hlomohangcue-horizon-ai-powered-pos-streamlit-app-cxyme1.streamlit.app/
+
+*Experience the full POS system with AI-powered features, inventory management, and sales analytics - all running with Lesotho Maloti currency!*
+
 ## ✨ Key Features
 
 ### 🏪 Core POS Functionality
@@ -73,7 +78,8 @@ streamlit run streamlit_app.py
 ```
 
 ### Access the Application
-- **Web Interface:** http://localhost:8501
+- **🌐 Live Demo:** https://hlomohangcue-horizon-ai-powered-pos-streamlit-app-cxyme1.streamlit.app/
+- **💻 Local Development:** http://localhost:8501
 - **Features:** Sales, Inventory, Analytics, AI Insights
 
 ## Usage

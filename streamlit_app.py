@@ -180,7 +180,7 @@ def main_dashboard():
     # Load data
     inventory, transactions, customers = load_data()
     
-    # Key Metrics Row
+    # Key Metrics Row - Real Data Display
     if not transactions.empty:
         col1, col2, col3, col4 = st.columns(4)
         
@@ -199,46 +199,155 @@ def main_dashboard():
         with col4:
             unique_customers = transactions['customer_id'].nunique()
             st.metric("👥 Unique Customers", f"{unique_customers:,}")
+    else:
+        # Show placeholder metrics when no transaction data exists
+        col1, col2, col3, col4 = st.columns(4)
+        with col1:
+            st.metric("💰 Total Sales", format_currency(0))
+        with col2:
+            st.metric("🧾 Total Transactions", "0")
+        with col3:
+            st.metric("📊 Avg Transaction", format_currency(0))
+        with col4:
+            st.metric("👥 Unique Customers", "0")
     
-    # Charts Row
+    # Enhanced Analytics Charts - Real Data Visualization
     if not transactions.empty:
+        st.subheader("📊 Real-Time Sales Analytics")
+        
         col1, col2 = st.columns(2)
         
         with col1:
             st.subheader("📈 Daily Sales Trend")
             daily_sales = transactions.groupby('transaction_date')['total_amount'].sum().reset_index()
-            fig = px.line(daily_sales, x='transaction_date', y='total_amount', 
-                         title="Daily Sales Revenue")
-            st.plotly_chart(fig, width='stretch')
+            daily_sales['transaction_date'] = pd.to_datetime(daily_sales['transaction_date'])
+            
+            fig = px.line(
+                daily_sales, 
+                x='transaction_date', 
+                y='total_amount',
+                title=f"Daily Sales Revenue (Total: {format_currency(daily_sales['total_amount'].sum())})",
+                labels={'total_amount': 'Sales Amount (LSL)', 'transaction_date': 'Date'}
+            )
+            fig.update_traces(line_color='#1f77b4', line_width=3)
+            fig.update_layout(hovermode='x unified')
+            st.plotly_chart(fig, use_container_width=True)
         
         with col2:
             st.subheader("🏷️ Sales by Category")
             category_sales = transactions.groupby('category')['total_amount'].sum().reset_index()
-            fig = px.pie(category_sales, values='total_amount', names='category',
-                        title="Revenue by Product Category")
-            st.plotly_chart(fig, width='stretch')
+            category_sales = category_sales.sort_values('total_amount', ascending=False)
+            
+            fig = px.pie(
+                category_sales, 
+                values='total_amount', 
+                names='category',
+                title=f"Revenue Distribution ({len(category_sales)} Categories)",
+                color_discrete_sequence=px.colors.qualitative.Set3
+            )
+            fig.update_traces(textposition='inside', textinfo='percent+label')
+            st.plotly_chart(fig, use_container_width=True)
+            
+        # Additional Analytics Row
+        col3, col4 = st.columns(2)
+        
+        with col3:
+            st.subheader("💳 Payment Methods")
+            payment_stats = transactions['payment_method'].value_counts().reset_index()
+            payment_stats.columns = ['Payment Method', 'Transactions']
+            
+            fig = px.bar(
+                payment_stats,
+                x='Payment Method',
+                y='Transactions',
+                title="Transaction Count by Payment Method",
+                color='Transactions',
+                color_continuous_scale='Blues'
+            )
+            st.plotly_chart(fig, use_container_width=True)
+            
+        with col4:
+            st.subheader("🏆 Top Products")
+            product_sales = transactions.groupby('product_name')['total_amount'].sum().reset_index()
+            product_sales = product_sales.sort_values('total_amount', ascending=False).head(10)
+            
+            fig = px.bar(
+                product_sales,
+                x='total_amount',
+                y='product_name',
+                orientation='h',
+                title="Top 10 Products by Revenue",
+                labels={'total_amount': 'Revenue (LSL)', 'product_name': 'Product'}
+            )
+            fig.update_layout(yaxis={'categoryorder': 'total ascending'})
+            st.plotly_chart(fig, use_container_width=True)
+    else:
+        st.info("📊 No transaction data available for analytics. Complete some sales to see charts!")
     
-    # Inventory Status
+    # Enhanced Inventory Status - Real Stock Data
+    st.subheader("📦 Real-Time Inventory Status")
+    
     if not inventory.empty:
-        st.subheader("📦 Inventory Status")
+        # Inventory overview metrics
+        col1, col2, col3, col4 = st.columns(4)
+        
+        with col1:
+            total_products = len(inventory)
+            st.metric("📦 Total Products", f"{total_products:,}")
+            
+        with col2:
+            total_stock_units = inventory['stock_quantity'].sum()
+            st.metric("📊 Total Stock Units", f"{total_stock_units:,}")
+            
+        with col3:
+            total_stock_value = (inventory['unit_price'] * inventory['stock_quantity']).sum()
+            st.metric("💎 Total Stock Value", format_currency(total_stock_value))
+            
+        with col4:
+            out_of_stock = len(inventory[inventory['stock_quantity'] == 0])
+            st.metric("🚫 Out of Stock", f"{out_of_stock:,}")
         
         # Low stock alerts
         low_stock = inventory[inventory['stock_quantity'] <= inventory['reorder_level']]
         if not low_stock.empty:
             st.warning(f"⚠️ {len(low_stock)} products are low in stock!")
-            st.dataframe(low_stock[['product_name', 'stock_quantity', 'reorder_level']])
+            st.dataframe(
+                low_stock[['product_name', 'stock_quantity', 'reorder_level', 'unit_price']].style.format({
+                    'unit_price': lambda x: format_currency(x)
+                }),
+                use_container_width=True
+            )
+        else:
+            st.success("✅ All products are adequately stocked!")
+            
+        # Current inventory overview table
+        st.subheader("� Current Inventory Overview")
+        inventory_display = inventory.copy()
+        inventory_display['Stock Value'] = inventory_display['unit_price'] * inventory_display['stock_quantity']
         
-        # Inventory overview
-        col1, col2, col3 = st.columns(3)
+        # Format the display
+        display_df = inventory_display[['product_name', 'category', 'stock_quantity', 'unit_price', 'Stock Value', 'reorder_level']].copy()
+        display_df.columns = ['Product Name', 'Category', 'Stock Qty', 'Unit Price', 'Stock Value', 'Reorder Level']
+        
+        st.dataframe(
+            display_df.style.format({
+                'Unit Price': lambda x: format_currency(x),
+                'Stock Value': lambda x: format_currency(x)
+            }),
+            use_container_width=True
+        )
+    else:
+        st.warning("📦 No inventory data available. Please add products through the Manager Interface.")
+        # Show placeholder metrics
+        col1, col2, col3, col4 = st.columns(4)
         with col1:
-            total_products = len(inventory)
-            st.metric("📦 Total Products", total_products)
+            st.metric("📦 Total Products", "0")
         with col2:
-            total_stock_value = (inventory['unit_price'] * inventory['stock_quantity']).sum()
-            st.metric("💎 Stock Value", format_currency(total_stock_value))
+            st.metric("� Total Stock Units", "0")
         with col3:
-            out_of_stock = len(inventory[inventory['stock_quantity'] == 0])
-            st.metric("🚫 Out of Stock", out_of_stock)
+            st.metric("💎 Total Stock Value", format_currency(0))
+        with col4:
+            st.metric("🚫 Out of Stock", "0")
 
 def sales_interface():
     """Sales assistant interface"""
@@ -877,7 +986,7 @@ def inventory_management():
                 st.info("No inventory data to export")
 
 def sales_analytics():
-    """Sales analytics interface"""
+    """Enhanced sales analytics interface with real product data"""
     st.subheader("📊 Sales Analytics")
     
     # Load data
@@ -904,55 +1013,220 @@ def sales_analytics():
         st.warning("No transactions found in the selected date range.")
         return
     
-    # Key metrics
+    # Enhanced Key Metrics with Real Data Validation
     col1, col2, col3, col4 = st.columns(4)
     
     with col1:
         total_revenue = filtered_transactions['total_amount'].sum()
-        st.metric("💰 Total Revenue", format_currency(total_revenue))
+        st.metric("💰 Total Revenue", format_currency(total_revenue), 
+                 help="Calculated from actual transaction data")
     
     with col2:
         total_transactions = len(filtered_transactions)
-        st.metric("🧾 Transactions", f"{total_transactions:,}")
+        st.metric("🧾 Transactions", f"{total_transactions:,}",
+                 help="Count of completed sales transactions")
     
     with col3:
         avg_transaction_value = filtered_transactions['total_amount'].mean()
-        st.metric("📊 Avg Transaction", format_currency(avg_transaction_value))
+        st.metric("📊 Avg Transaction", format_currency(avg_transaction_value),
+                 help="Average value per transaction")
     
     with col4:
         total_items_sold = filtered_transactions['quantity'].sum()
-        st.metric("📦 Items Sold", f"{total_items_sold:,}")
+        st.metric("📦 Items Sold", f"{total_items_sold:,}",
+                 help="Total quantity of items sold")
     
-    # Charts
+    # Product Analysis Section
+    st.subheader("🏪 Product Performance Analysis")
+    
+    # Show inventory vs sales comparison
     col1, col2 = st.columns(2)
     
     with col1:
-        st.subheader("Daily Sales Trend")
-        daily_sales = filtered_transactions.groupby('transaction_date')['total_amount'].sum().reset_index()
-        fig = px.line(daily_sales, x='transaction_date', y='total_amount',
-                     title="Daily Revenue")
-        st.plotly_chart(fig, width='stretch')
+        st.markdown("**📦 Available Inventory Products:**")
+        if not inventory.empty:
+            inventory_summary = inventory.groupby('category').agg({
+                'product_name': 'count',
+                'stock_quantity': 'sum',
+                'unit_price': 'mean'
+            }).round(2)
+            inventory_summary.columns = ['Product Count', 'Total Stock', 'Avg Price']
+            st.dataframe(inventory_summary, use_container_width=True)
+        else:
+            st.info("No inventory data available")
     
     with col2:
-        st.subheader("Top Products")
+        st.markdown("**🛒 Transaction Products:**")
+        transaction_products = filtered_transactions.groupby('category').agg({
+            'product_name': 'nunique',
+            'quantity': 'sum',
+            'total_amount': 'sum'
+        }).round(2)
+        transaction_products.columns = ['Unique Products', 'Qty Sold', 'Revenue']
+        transaction_products['Revenue'] = transaction_products['Revenue'].apply(format_currency)
+        st.dataframe(transaction_products, use_container_width=True)
+    
+    # Enhanced Analytics Charts
+    st.subheader("📈 Sales Performance Charts")
+    
+    col1, col2 = st.columns(2)
+    
+    with col1:
+        st.subheader("📅 Daily Sales Trend")
+        daily_sales = filtered_transactions.groupby('transaction_date').agg({
+            'total_amount': 'sum',
+            'quantity': 'sum'
+        }).reset_index()
+        
+        fig = px.line(daily_sales, x='transaction_date', y='total_amount',
+                     title=f"Daily Revenue Trend ({format_currency(daily_sales['total_amount'].sum())} Total)",
+                     labels={'total_amount': 'Revenue (LSL)', 'transaction_date': 'Date'})
+        fig.update_traces(line_color='#1f77b4', line_width=3)
+        fig.update_layout(hovermode='x unified')
+        st.plotly_chart(fig, use_container_width=True)
+    
+    with col2:
+        st.subheader("🏆 Top Products by Revenue")
         top_products = filtered_transactions.groupby('product_name').agg({
             'quantity': 'sum',
             'total_amount': 'sum'
         }).sort_values('total_amount', ascending=False).head(10)
         
-        fig = px.bar(top_products.reset_index(), x='product_name', y='total_amount',
-                    title="Top 10 Products by Revenue")
-        fig.update_layout(xaxis_tickangle=45)
-        st.plotly_chart(fig, width='stretch')
+        fig = px.bar(top_products.reset_index(), 
+                    x='total_amount', y='product_name', 
+                    orientation='h',
+                    title=f"Top {len(top_products)} Products by Revenue",
+                    labels={'total_amount': 'Revenue (LSL)', 'product_name': 'Product'})
+        fig.update_layout(yaxis={'categoryorder': 'total ascending'})
+        st.plotly_chart(fig, use_container_width=True)
     
-    # Category analysis
-    st.subheader("Category Performance")
-    category_performance = filtered_transactions.groupby('category').agg({
-        'total_amount': ['sum', 'mean', 'count'],
-        'quantity': 'sum'
+    # Additional Analytics Row
+    col3, col4 = st.columns(2)
+    
+    with col3:
+        st.subheader("📊 Sales by Category")
+        category_sales = filtered_transactions.groupby('category')['total_amount'].sum().reset_index()
+        category_sales = category_sales.sort_values('total_amount', ascending=False)
+        
+        fig = px.pie(category_sales, values='total_amount', names='category',
+                    title="Revenue Distribution by Category",
+                    color_discrete_sequence=px.colors.qualitative.Set3)
+        fig.update_traces(textposition='inside', textinfo='percent+label')
+        st.plotly_chart(fig, use_container_width=True)
+    
+    with col4:
+        st.subheader("📦 Quantity vs Revenue")
+        product_performance = filtered_transactions.groupby('product_name').agg({
+            'quantity': 'sum',
+            'total_amount': 'sum'
+        }).reset_index()
+        
+        fig = px.scatter(product_performance, 
+                        x='quantity', y='total_amount',
+                        hover_name='product_name',
+                        title="Product Performance: Quantity vs Revenue",
+                        labels={'quantity': 'Total Quantity Sold', 'total_amount': 'Total Revenue (LSL)'})
+        fig.update_traces(marker=dict(size=12, opacity=0.7))
+        st.plotly_chart(fig, use_container_width=True)
+    
+    # Detailed Product Analysis Table
+    st.subheader("📋 Detailed Product Performance")
+    
+    # Calculate comprehensive product metrics
+    product_analysis = filtered_transactions.groupby('product_name').agg({
+        'quantity': 'sum',
+        'total_amount': 'sum',
+        'unit_price': 'mean',
+        'transaction_id': 'count'
     }).round(2)
-    category_performance.columns = ['Total Revenue', 'Avg Transaction', 'Transaction Count', 'Total Quantity']
-    st.dataframe(category_performance, width='stretch')
+    
+    product_analysis.columns = ['Total Qty Sold', 'Total Revenue', 'Avg Unit Price', 'Times Sold']
+    product_analysis['Revenue per Unit'] = (product_analysis['Total Revenue'] / product_analysis['Total Qty Sold']).round(2)
+    product_analysis = product_analysis.sort_values('Total Revenue', ascending=False)
+    
+    # Format currency columns
+    currency_cols = ['Total Revenue', 'Avg Unit Price', 'Revenue per Unit']
+    for col in currency_cols:
+        if col in product_analysis.columns:
+            product_analysis[f'{col} (Formatted)'] = product_analysis[col].apply(format_currency)
+    
+    # Display formatted table
+    display_cols = ['Total Qty Sold', 'Total Revenue (Formatted)', 'Avg Unit Price (Formatted)', 
+                   'Revenue per Unit (Formatted)', 'Times Sold']
+    available_cols = [col for col in display_cols if col in product_analysis.columns]
+    
+    st.dataframe(
+        product_analysis[available_cols].head(15),
+        use_container_width=True,
+        height=400
+    )
+    
+    # Summary Statistics
+    st.subheader("📊 Summary Statistics")
+    col1, col2, col3 = st.columns(3)
+    
+    with col1:
+        st.metric("🎯 Best Selling Product", 
+                 product_analysis.index[0] if len(product_analysis) > 0 else "N/A",
+                 help="Product with highest revenue")
+    
+    with col2:
+        most_frequent = product_analysis.sort_values('Times Sold', ascending=False).index[0] if len(product_analysis) > 0 else "N/A"
+        st.metric("🔄 Most Frequent Product", most_frequent,
+                 help="Product sold in most transactions")
+    
+    with col3:
+        highest_value = product_analysis.sort_values('Avg Unit Price', ascending=False).index[0] if len(product_analysis) > 0 else "N/A"
+        st.metric("💎 Highest Value Product", highest_value,
+                 help="Product with highest average unit price")
+    
+    # Inventory vs Sales Analysis
+    if not inventory.empty:
+        st.subheader("🔄 Inventory vs Sales Analysis")
+        
+        # Get products that are in both inventory and transactions
+        inventory_products = set(inventory['product_name'].str.lower().str.strip())
+        transaction_products = set(filtered_transactions['product_name'].str.lower().str.strip())
+        
+        col1, col2, col3 = st.columns(3)
+        
+        with col1:
+            st.metric("📦 Products in Inventory", len(inventory_products))
+            
+        with col2:
+            st.metric("🛒 Products Sold", len(transaction_products))
+            
+        with col3:
+            matching_products = inventory_products.intersection(transaction_products)
+            st.metric("🎯 Matching Products", len(matching_products))
+        
+        # Show product alignment status
+        if len(matching_products) > 0:
+            st.success(f"✅ Found {len(matching_products)} products that appear in both inventory and sales!")
+            st.write("**Matching Products:**", ", ".join(list(matching_products)[:10]))
+        else:
+            st.warning("⚠️ No direct product matches found between inventory and sales data.")
+            st.info("💡 **Recommendation:** Update inventory to include actual sold products or align transaction data with current inventory.")
+        
+        # Show inventory that hasn't been sold
+        unsold_products = inventory_products - transaction_products
+        if len(unsold_products) > 0:
+            with st.expander(f"📋 View Unsold Inventory Products ({len(unsold_products)} items)"):
+                st.write("Products in inventory but not in sales transactions:")
+                for product in list(unsold_products)[:20]:  # Show first 20
+                    inventory_item = inventory[inventory['product_name'].str.lower().str.strip() == product].iloc[0]
+                    st.write(f"• {inventory_item['product_name']} - Stock: {inventory_item['stock_quantity']} @ {format_currency(inventory_item['unit_price'])}")
+        
+        # Show sales without inventory
+        products_without_inventory = transaction_products - inventory_products
+        if len(products_without_inventory) > 0:
+            with st.expander(f"🛒 View Products Sold Without Inventory ({len(products_without_inventory)} items)"):
+                st.write("Products sold but not found in current inventory:")
+                for product in list(products_without_inventory)[:20]:  # Show first 20
+                    sales_data = filtered_transactions[filtered_transactions['product_name'].str.lower().str.strip() == product]
+                    total_sold = sales_data['quantity'].sum()
+                    total_revenue = sales_data['total_amount'].sum()
+                    st.write(f"• {product.title()} - Sold: {total_sold} units, Revenue: {format_currency(total_revenue)}")
 
 def customer_insights():
     """Customer insights interface"""

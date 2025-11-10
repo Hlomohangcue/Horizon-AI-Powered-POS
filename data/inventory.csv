@@ -1,3 +1,29 @@
 product_id,product_name,category,unit_price,stock_quantity,reorder_level,description,date_added
 PROD_0001,chepies,Other,0.5,50,10,water melon chepies,2025-11-10
 PROD_0002,smoothies,Other,0.5,72,10,smoothies green,2025-11-10
+PROD_0003,colgate,Other,18.0,12,5,,2025-11-10
+PROD_0004,kortax pads,Other,3.5,16,5,,2025-11-10
+PROD_0005,stay free pads,Other,2.0,40,5,,2025-11-10
+PROD_0006,jlite cooking oil,Food,20.0,12,5,,2025-11-10
+PROD_0007,imana soup,Food,10.0,20,5,,2025-11-10
+PROD_0008,Tasty Beans,Food,25.0,10,5,,2025-11-10
+PROD_0009,Peas,Food,17.0,10,5,,2025-11-10
+PROD_0010,sugar,Food,13.0,20,5,,2025-11-10
+PROD_0011,spice,Food,2.5,186,15,,2025-11-10
+PROD_0012,beef stock,Food,1.0,90,15,,2025-11-10
+PROD_0013,mag,Other,12.0,5,1,,2025-11-10
+PROD_0014,toilet paper (twin),Other,7.0,24,5,,2025-11-10
+PROD_0015,pip pop,Food,1.5,48,5,,2025-11-10
+PROD_0016,pip pop,Food,1.5,48,5,,2025-11-10
+PROD_0017,glucose biscuts,Food,2.5,48,5,,2025-11-10
+PROD_0018,drink opop,Food,1.5,50,5,,2025-11-10
+PROD_0019,my life,Food,12.0,10,5,,2025-11-10
+PROD_0020,stimirol,Food,1.0,50,5,,2025-11-10
+PROD_0021,secure soap,Other,17.0,4,1,,2025-11-10
+PROD_0022,sunlight soap,Other,15.0,6,2,,2025-11-10
+PROD_0023,curtlegh,Other,3.0,60,20,,2025-11-10
+PROD_0024,camel,Other,3.0,60,20,,2025-11-10
+PROD_0025,styvesant,Other,3.0,60,20,,2025-11-10
+PROD_0026,boss,Other,1.0,100,20,,2025-11-10
+PROD_0027,chief,Other,1.0,200,20,,2025-11-10
+PROD_0028,chief,Other,1.0,200,20,,2025-11-10
