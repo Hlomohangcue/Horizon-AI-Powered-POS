@@ -554,6 +554,70 @@ def inventory_management():
     # Load inventory
     inventory, _, _ = load_data()
     
+    # Inventory Status Overview
+    col1, col2, col3, col4 = st.columns(4)
+    with col1:
+        total_products = len(inventory) if not inventory.empty else 0
+        st.metric("📦 Total Products", total_products)
+    with col2:
+        total_stock = inventory['stock_quantity'].sum() if not inventory.empty else 0
+        st.metric("📊 Total Stock Units", f"{total_stock:,}")
+    with col3:
+        total_value = (inventory['unit_price'] * inventory['stock_quantity']).sum() if not inventory.empty else 0
+        st.metric("💰 Inventory Value", f"${total_value:,.2f}")
+    with col4:
+        low_stock_count = len(inventory[inventory['stock_quantity'] <= inventory['reorder_level']]) if not inventory.empty else 0
+        st.metric("⚠️ Low Stock Items", low_stock_count)
+    
+    # Inventory Actions
+    st.markdown("---")
+    action_col1, action_col2, action_col3 = st.columns(3)
+    
+    with action_col1:
+        if st.button("🔄 Reset Inventory", help="Clear all inventory and start fresh"):
+            if st.session_state.get('confirm_reset', False):
+                # Create empty inventory
+                empty_inventory = pd.DataFrame(columns=['product_id', 'product_name', 'category', 'unit_price', 'stock_quantity', 'reorder_level', 'description', 'date_added'])
+                if save_inventory(empty_inventory):
+                    st.success("✅ Inventory reset successfully!")
+                    st.session_state['confirm_reset'] = False
+                    st.cache_data.clear()
+                else:
+                    st.error("❌ Error resetting inventory!")
+            else:
+                st.session_state['confirm_reset'] = True
+                st.warning("⚠️ Click again to confirm inventory reset!")
+    
+    with action_col2:
+        if not inventory.empty:
+            csv_data = inventory.to_csv(index=False)
+            st.download_button(
+                label="💾 Backup Inventory",
+                data=csv_data,
+                file_name=f"inventory_backup_{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv",
+                mime="text/csv",
+                help="Download current inventory as backup"
+            )
+    
+    with action_col3:
+        if st.button("📋 Sample Template", help="Download a sample CSV template"):
+            sample_data = pd.DataFrame({
+                'product_name': ['Sample Product 1', 'Sample Product 2'],
+                'category': ['Electronics', 'Clothing'],
+                'unit_price': [99.99, 29.99],
+                'stock_quantity': [50, 100],
+                'reorder_level': [10, 20],
+                'description': ['Sample electronics item', 'Sample clothing item']
+            })
+            
+            sample_csv = sample_data.to_csv(index=False)
+            st.download_button(
+                label="📋 Download Template",
+                data=sample_csv,
+                file_name="inventory_template.csv",
+                mime="text/csv"
+            )
+    
     # Add new product
     with st.expander("➕ Add New Product"):
         with st.form("add_product_form"):
@@ -593,72 +657,217 @@ def inventory_management():
                 else:
                     st.error("Product name is required!")
     
-    # Current inventory
-    if not inventory.empty:
-        st.subheader("Current Inventory")
-        
-        # Search and filter
-        col1, col2, col3 = st.columns(3)
-        with col1:
-            search_term = st.text_input("🔍 Search Products")
-        with col2:
-            category_filter = st.selectbox("Filter by Category", ["All"] + list(inventory['category'].unique()))
-        with col3:
-            stock_filter = st.selectbox("Stock Status", ["All", "In Stock", "Low Stock", "Out of Stock"])
-        
-        # Apply filters
-        filtered_inventory = inventory.copy()
-        
-        if search_term:
-            filtered_inventory = filtered_inventory[
-                filtered_inventory['product_name'].str.contains(search_term, case=False, na=False)
-            ]
-        
-        if category_filter != "All":
-            filtered_inventory = filtered_inventory[filtered_inventory['category'] == category_filter]
-        
-        if stock_filter == "In Stock":
-            filtered_inventory = filtered_inventory[filtered_inventory['stock_quantity'] > filtered_inventory['reorder_level']]
-        elif stock_filter == "Low Stock":
-            filtered_inventory = filtered_inventory[
-                (filtered_inventory['stock_quantity'] <= filtered_inventory['reorder_level']) & 
-                (filtered_inventory['stock_quantity'] > 0)
-            ]
-        elif stock_filter == "Out of Stock":
-            filtered_inventory = filtered_inventory[filtered_inventory['stock_quantity'] == 0]
-        
-        # Display inventory with edit capability
-        st.dataframe(
-            filtered_inventory,
-            width='stretch',
-            hide_index=True
-        )
-        
-        # Bulk actions
-        with st.expander("⚙️ Bulk Actions"):
-            col1, col2 = st.columns(2)
+    # Inventory Management Options
+    st.subheader("📋 Inventory Management Options")
+    
+    tab1, tab2, tab3 = st.tabs(["📊 Current Inventory", "✏️ Edit Products", "🗑️ Remove Products"])
+    
+    with tab1:
+        # Current inventory display
+        if not inventory.empty:
+            st.subheader("Current Inventory")
             
+            # Search and filter
+            col1, col2, col3 = st.columns(3)
             with col1:
-                st.subheader("Update Stock")
-                selected_product = st.selectbox("Select Product", filtered_inventory['product_name'].tolist())
-                new_quantity = st.number_input("New Quantity", min_value=0)
-                
-                if st.button("Update Stock"):
-                    inventory.loc[inventory['product_name'] == selected_product, 'stock_quantity'] = new_quantity
-                    if save_inventory(inventory):
-                        st.success(f"✅ Stock updated for {selected_product}")
-                        st.cache_data.clear()
-            
+                search_term = st.text_input("🔍 Search Products", key="search_current")
             with col2:
-                st.subheader("Price Update")
-                price_product = st.selectbox("Select Product for Price Update", filtered_inventory['product_name'].tolist())
-                new_price = st.number_input("New Price ($)", min_value=0.01)
-                
-                if st.button("Update Price"):
-                    inventory.loc[inventory['product_name'] == price_product, 'unit_price'] = new_price
+                category_filter = st.selectbox("Filter by Category", ["All"] + list(inventory['category'].unique()), key="filter_current")
+            with col3:
+                stock_filter = st.selectbox("Stock Status", ["All", "In Stock", "Low Stock", "Out of Stock"], key="status_current")
+            
+            # Apply filters
+            filtered_inventory = inventory.copy()
+            
+            if search_term:
+                filtered_inventory = filtered_inventory[
+                    filtered_inventory['product_name'].str.contains(search_term, case=False, na=False)
+                ]
+            
+            if category_filter != "All":
+                filtered_inventory = filtered_inventory[filtered_inventory['category'] == category_filter]
+            
+            if stock_filter == "In Stock":
+                filtered_inventory = filtered_inventory[filtered_inventory['stock_quantity'] > filtered_inventory['reorder_level']]
+            elif stock_filter == "Low Stock":
+                filtered_inventory = filtered_inventory[
+                    (filtered_inventory['stock_quantity'] <= filtered_inventory['reorder_level']) & 
+                    (filtered_inventory['stock_quantity'] > 0)
+                ]
+            elif stock_filter == "Out of Stock":
+                filtered_inventory = filtered_inventory[filtered_inventory['stock_quantity'] == 0]
+            
+            # Display inventory
+            st.dataframe(
+                filtered_inventory[['product_name', 'category', 'unit_price', 'stock_quantity', 'reorder_level']],
+                width='stretch',
+                hide_index=True
+            )
+            
+            # Quick stock update
+            st.subheader("⚡ Quick Stock Update")
+            col1, col2, col3 = st.columns(3)
+            with col1:
+                quick_product = st.selectbox("Select Product", filtered_inventory['product_name'].tolist(), key="quick_update")
+            with col2:
+                current_stock = filtered_inventory[filtered_inventory['product_name'] == quick_product]['stock_quantity'].iloc[0] if quick_product and not filtered_inventory.empty else 0
+                st.info(f"Current Stock: {current_stock}")
+                new_stock = st.number_input("New Stock Quantity", min_value=0, value=int(current_stock), key="new_stock")
+            with col3:
+                st.write("") # Spacer
+                st.write("") # Spacer
+                if st.button("🔄 Update Stock", key="update_quick"):
+                    inventory.loc[inventory['product_name'] == quick_product, 'stock_quantity'] = new_stock
                     if save_inventory(inventory):
-                        st.success(f"✅ Price updated for {price_product}")
+                        st.success(f"✅ Updated {quick_product} stock to {new_stock}")
                         st.cache_data.clear()
+        else:
+            st.info("No inventory items yet. Add your first product above!")
+    
+    with tab2:
+        # Edit existing products
+        st.subheader("✏️ Edit Product Details")
+        
+        if not inventory.empty:
+            # Select product to edit
+            edit_product = st.selectbox("Select Product to Edit", inventory['product_name'].tolist(), key="edit_select")
+            
+            if edit_product:
+                # Get current product data
+                current_product = inventory[inventory['product_name'] == edit_product].iloc[0]
+                
+                # Edit form
+                with st.form("edit_product_form"):
+                    st.subheader(f"Editing: {edit_product}")
+                    
+                    col1, col2 = st.columns(2)
+                    
+                    with col1:
+                        edit_name = st.text_input("Product Name", value=current_product['product_name'])
+                        edit_category = st.selectbox("Category", 
+                                                   ["Electronics", "Clothing", "Food", "Books", "Home", "Sports", "Other"],
+                                                   index=["Electronics", "Clothing", "Food", "Books", "Home", "Sports", "Other"].index(current_product['category']) if current_product['category'] in ["Electronics", "Clothing", "Food", "Books", "Home", "Sports", "Other"] else 0)
+                        edit_price = st.number_input("Unit Price ($)", min_value=0.01, value=float(current_product['unit_price']))
+                    
+                    with col2:
+                        edit_stock = st.number_input("Current Stock", min_value=0, value=int(current_product['stock_quantity']))
+                        edit_reorder = st.number_input("Reorder Level", min_value=0, value=int(current_product['reorder_level']))
+                        edit_description = st.text_area("Description", value=current_product.get('description', ''))
+                    
+                    if st.form_submit_button("💾 Save Changes", type="primary"):
+                        # Update the product
+                        inventory.loc[inventory['product_name'] == edit_product, 'product_name'] = edit_name
+                        inventory.loc[inventory['product_name'] == edit_product, 'category'] = edit_category
+                        inventory.loc[inventory['product_name'] == edit_product, 'unit_price'] = edit_price
+                        inventory.loc[inventory['product_name'] == edit_product, 'stock_quantity'] = edit_stock
+                        inventory.loc[inventory['product_name'] == edit_product, 'reorder_level'] = edit_reorder
+                        inventory.loc[inventory['product_name'] == edit_product, 'description'] = edit_description
+                        
+                        if save_inventory(inventory):
+                            st.success(f"✅ Product '{edit_name}' updated successfully!")
+                            st.cache_data.clear()
+                        else:
+                            st.error("❌ Error updating product!")
+        else:
+            st.info("No products available to edit. Add some products first!")
+    
+    with tab3:
+        # Remove products
+        st.subheader("🗑️ Remove Products")
+        
+        if not inventory.empty:
+            st.warning("⚠️ **Caution**: Removing products is permanent and cannot be undone!")
+            
+            # Select product to remove
+            remove_product = st.selectbox("Select Product to Remove", inventory['product_name'].tolist(), key="remove_select")
+            
+            if remove_product:
+                # Show product details
+                product_to_remove = inventory[inventory['product_name'] == remove_product].iloc[0]
+                
+                col1, col2 = st.columns(2)
+                with col1:
+                    st.info(f"""
+                    **Product Details:**
+                    - Name: {product_to_remove['product_name']}
+                    - Category: {product_to_remove['category']}
+                    - Price: ${product_to_remove['unit_price']:.2f}
+                    - Stock: {product_to_remove['stock_quantity']} units
+                    """)
+                
+                with col2:
+                    # Confirmation
+                    confirm_text = st.text_input("Type 'DELETE' to confirm removal:", key="confirm_delete")
+                    
+                    if st.button("🗑️ Remove Product", type="secondary", key="remove_btn"):
+                        if confirm_text.upper() == "DELETE":
+                            # Remove the product
+                            updated_inventory = inventory[inventory['product_name'] != remove_product]
+                            
+                            if save_inventory(updated_inventory):
+                                st.success(f"✅ Product '{remove_product}' removed successfully!")
+                                st.cache_data.clear()
+                            else:
+                                st.error("❌ Error removing product!")
+                        else:
+                            st.error("❌ Please type 'DELETE' to confirm removal!")
+        else:
+            st.info("No products available to remove.")
+    
+    # Bulk Import Section
+    with st.expander("📤 Bulk Import/Export"):
+        col1, col2 = st.columns(2)
+        
+        with col1:
+            st.subheader("📥 Import from CSV")
+            uploaded_file = st.file_uploader("Upload inventory CSV file", type=['csv'])
+            
+            if uploaded_file is not None:
+                try:
+                    new_inventory = pd.read_csv(uploaded_file)
+                    
+                    # Validate required columns
+                    required_cols = ['product_name', 'category', 'unit_price', 'stock_quantity', 'reorder_level']
+                    if all(col in new_inventory.columns for col in required_cols):
+                        
+                        st.write("Preview of imported data:")
+                        st.dataframe(new_inventory.head(), width='stretch')
+                        
+                        if st.button("📥 Import Inventory"):
+                            # Add product IDs and dates
+                            new_inventory['product_id'] = [f"PROD_{i+len(inventory)+1:04d}" for i in range(len(new_inventory))]
+                            new_inventory['date_added'] = datetime.now().strftime('%Y-%m-%d')
+                            
+                            # Combine with existing inventory
+                            combined_inventory = pd.concat([inventory, new_inventory], ignore_index=True)
+                            
+                            if save_inventory(combined_inventory):
+                                st.success(f"✅ Imported {len(new_inventory)} products successfully!")
+                                st.cache_data.clear()
+                            else:
+                                st.error("❌ Error importing inventory!")
+                    else:
+                        st.error(f"❌ CSV must contain columns: {', '.join(required_cols)}")
+                        
+                except Exception as e:
+                    st.error(f"❌ Error reading CSV file: {e}")
+        
+        with col2:
+            st.subheader("📤 Export to CSV")
+            
+            if not inventory.empty:
+                csv_data = inventory.to_csv(index=False)
+                
+                st.download_button(
+                    label="📤 Download Inventory CSV",
+                    data=csv_data,
+                    file_name=f"horizon_inventory_{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv",
+                    mime="text/csv"
+                )
+                
+                st.info(f"Ready to export {len(inventory)} products")
+            else:
+                st.info("No inventory data to export")
 
 def sales_analytics():
     """Sales analytics interface"""
