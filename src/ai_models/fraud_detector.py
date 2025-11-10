@@ -190,7 +190,7 @@ class FraudDetector:
         """
         fraud_flags = pd.Series(False, index=data.index)
         
-        # Rule 1: Extremely high amounts (>$10,000)
+        # Rule 1: Extremely high amounts (>M 10,000)
         if 'total_amount' in data.columns:
             rule1 = data['total_amount'] > 10000
             fraud_flags |= rule1

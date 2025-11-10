@@ -698,7 +698,7 @@ class POSInterface:
             if high_value_transactions > 0:
                 print(f"\n🛡️  Security Recommendations:")
                 print(f"   • {high_value_transactions} high-value transactions today")
-                print(f"   • Consider additional verification for transactions >$500")
+                print(f"   • Consider additional verification for transactions >M 500")
             
         except Exception as e:
             logger.error(f"Error generating AI insights: {str(e)}")

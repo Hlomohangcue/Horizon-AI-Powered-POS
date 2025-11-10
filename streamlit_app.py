@@ -28,6 +28,11 @@ import time
 # Add src directory to Python path
 sys.path.append(os.path.join(os.path.dirname(__file__), 'src'))
 
+# Currency formatting function for Lesotho Maloti (LSL)
+def format_currency(amount):
+    """Format amount in Lesotho Maloti (LSL) currency"""
+    return f"M {amount:,.2f}"
+
 # Configure Streamlit page
 st.set_page_config(
     page_title="Horizon AI POS System",
@@ -181,16 +186,16 @@ def main_dashboard():
         
         with col1:
             total_sales = transactions['total_amount'].sum()
-            st.metric("💰 Total Sales", f"${total_sales:,.2f}")
-        
+            st.metric("💰 Total Sales", format_currency(total_sales))
+            
         with col2:
-            total_transactions = len(transactions)
+            total_transactions = len(transactions) 
             st.metric("🧾 Total Transactions", f"{total_transactions:,}")
-        
+            
         with col3:
             avg_transaction = transactions['total_amount'].mean()
-            st.metric("📊 Avg Transaction", f"${avg_transaction:.2f}")
-        
+            st.metric("📊 Avg Transaction", format_currency(avg_transaction))
+            
         with col4:
             unique_customers = transactions['customer_id'].nunique()
             st.metric("👥 Unique Customers", f"{unique_customers:,}")
@@ -230,7 +235,7 @@ def main_dashboard():
             st.metric("📦 Total Products", total_products)
         with col2:
             total_stock_value = (inventory['unit_price'] * inventory['stock_quantity']).sum()
-            st.metric("💎 Stock Value", f"${total_stock_value:,.2f}")
+            st.metric("💎 Stock Value", format_currency(total_stock_value))
         with col3:
             out_of_stock = len(inventory[inventory['stock_quantity'] == 0])
             st.metric("🚫 Out of Stock", out_of_stock)
@@ -272,7 +277,7 @@ def sales_interface():
         with col3:
             if quick_product:
                 quick_total = product_data['unit_price'] * quick_qty
-                quick_cash = st.number_input(f"Cash Received (Total: ${quick_total:.2f})", 
+                quick_cash = st.number_input(f"Cash Received (Total: {format_currency(quick_total)})", 
                                            min_value=0.0, value=float(quick_total), step=0.01, key="quick_cash")
                 quick_change = quick_cash - quick_total
         
@@ -307,10 +312,10 @@ def sales_interface():
                 if save_transaction(quick_transaction) and save_inventory(inventory):
                     st.success("✅ Quick sale completed!")
                     if quick_change > 0:
-                        st.success(f"💰 **CHANGE: ${quick_change:.2f}**")
+                        st.success(f"💰 **CHANGE: {format_currency(quick_change)}**")
                     st.cache_data.clear()
             else:
-                st.error(f"❌ Insufficient cash! Need ${quick_total - quick_cash:.2f} more")
+                st.error(f"❌ Insufficient cash! Need {format_currency(quick_total - quick_cash)} more")
         
         st.markdown("---")
         
@@ -336,7 +341,7 @@ def sales_interface():
             
             if selected_product:
                 product_data = available_products[available_products['product_name'] == selected_product].iloc[0]
-                st.info(f"Price: ${product_data['unit_price']:.2f} | Stock: {product_data['stock_quantity']} units")
+                st.info(f"Price: {format_currency(product_data['unit_price'])} | Stock: {product_data['stock_quantity']} units")
         
         with col2:
             # Transaction details
@@ -354,7 +359,7 @@ def sales_interface():
                     discount_percent = st.number_input("Discount %", min_value=0.0, max_value=50.0, value=0.0)
                     discount_amount = subtotal * (discount_percent / 100)
                 elif discount_type == "Fixed Amount":
-                    discount_amount = st.number_input("Discount Amount $", min_value=0.0, max_value=float(subtotal), value=0.0)
+                    discount_amount = st.number_input("Discount Amount (M)", min_value=0.0, max_value=float(subtotal), value=0.0)
                 
                 # Calculate total after discount
                 total_due = subtotal - discount_amount
@@ -368,7 +373,7 @@ def sales_interface():
                 
                 if payment_method == "Cash":
                     payment_received = st.number_input(
-                        f"Cash Received ($)", 
+                        f"Cash Received (M)", 
                         min_value=0.0, 
                         value=float(total_due),
                         step=0.01,
@@ -377,9 +382,9 @@ def sales_interface():
                     change_due = payment_received - total_due
                     
                     if payment_received < total_due:
-                        st.error(f"❌ Insufficient payment! Need ${total_due - payment_received:.2f} more")
+                        st.error(f"❌ Insufficient payment! Need {format_currency(total_due - payment_received)} more")
                     elif change_due > 0:
-                        st.success(f"💰 Change due: ${change_due:.2f}")
+                        st.success(f"💰 Change due: {format_currency(change_due)}")
                     else:
                         st.info("✅ Exact payment received")
                 else:
@@ -391,14 +396,14 @@ def sales_interface():
                 st.subheader("📋 Order Summary")
                 st.markdown(f"""
                 **Product**: {selected_product}  
-                **Unit Price**: ${product_data['unit_price']:.2f}  
+                **Unit Price**: {format_currency(product_data['unit_price'])}  
                 **Quantity**: {quantity}  
-                **Subtotal**: ${subtotal:.2f}  
-                **Discount**: ${discount_amount:.2f}  
-                **Total Due**: ${total_due:.2f}  
+                **Subtotal**: {format_currency(subtotal)}  
+                **Discount**: {format_currency(discount_amount)}  
+                **Total Due**: {format_currency(total_due)}  
                 **Payment Method**: {payment_method}  
-                **Amount Received**: ${payment_received:.2f}  
-                **Change**: ${change_due:.2f}
+                **Amount Received**: {format_currency(payment_received)}  
+                **Change**: {format_currency(change_due)}
                 """)
                 
                 # Store values for transaction processing
@@ -459,7 +464,7 @@ def sales_interface():
                 
                 # Highlight change due if cash payment
                 if payment_method == "Cash" and transaction_data['change_due'] > 0:
-                    st.success(f"💰 **CHANGE DUE: ${transaction_data['change_due']:.2f}**")
+                    st.success(f"💰 **CHANGE DUE: {format_currency(transaction_data['change_due'])}**")
                 
                 receipt_content = f"""
                 **🏪 HORIZON ENTERPRISE**  
@@ -475,18 +480,18 @@ def sales_interface():
                 ═══════════════════════════════════
                 **ITEMS PURCHASED:**
                 📦 {selected_product}  
-                    💰 ${transaction_data['unit_price']:.2f} × {quantity} = ${transaction_data['subtotal']:.2f}
+                    💰 {format_currency(transaction_data['unit_price'])} × {quantity} = {format_currency(transaction_data['subtotal'])}
                 
                 ───────────────────────────────────
-                💵 Subtotal: ${transaction_data['subtotal']:.2f}  
-                🏷️ Discount: -${transaction_data['discount_amount']:.2f}  
-                **💳 TOTAL DUE: ${transaction_data['total_amount']:.2f}**
+                💵 Subtotal: {format_currency(transaction_data['subtotal'])}  
+                🏷️ Discount: -{format_currency(transaction_data['discount_amount'])}  
+                **💳 TOTAL DUE: {format_currency(transaction_data['total_amount'])}**
                 
                 ═══════════════════════════════════
                 **PAYMENT DETAILS:**  
                 💼 Method: {payment_method}  
-                💵 Received: ${transaction_data['payment_received']:.2f}  
-                💰 Change: ${transaction_data['change_due']:.2f}
+                💵 Received: {format_currency(transaction_data['payment_received'])}  
+                💰 Change: {format_currency(transaction_data['change_due'])}
                 
                 ═══════════════════════════════════
                 ✨ Thank you for shopping with us! ✨  
@@ -499,7 +504,7 @@ def sales_interface():
                 # Cash handling instructions for sales assistant
                 if payment_method == "Cash":
                     if transaction_data['change_due'] > 0:
-                        st.info(f"💡 **Sales Assistant:** Give ${transaction_data['change_due']:.2f} change to customer")
+                        st.info(f"💡 **Sales Assistant:** Give {format_currency(transaction_data['change_due'])} change to customer")
                         
                         # Suggest change breakdown for large amounts
                         if transaction_data['change_due'] >= 20:
@@ -514,11 +519,11 @@ def sales_interface():
                             coins = change % 1
                             
                             breakdown = "💵 **Suggested Change Breakdown:**\n"
-                            if bills_20 > 0: breakdown += f"• ${20} bills: {bills_20}\n"
-                            if bills_10 > 0: breakdown += f"• ${10} bills: {bills_10}\n" 
-                            if bills_5 > 0: breakdown += f"• ${5} bills: {bills_5}\n"
-                            if bills_1 > 0: breakdown += f"• ${1} bills: {bills_1}\n"
-                            if coins > 0: breakdown += f"• Coins: ${coins:.2f}\n"
+                            if bills_20 > 0: breakdown += f"• M 20 bills: {bills_20}\n"
+                            if bills_10 > 0: breakdown += f"• M 10 bills: {bills_10}\n" 
+                            if bills_5 > 0: breakdown += f"• M 5 bills: {bills_5}\n"
+                            if bills_1 > 0: breakdown += f"• M 1 bills: {bills_1}\n"
+                            if coins > 0: breakdown += f"• Coins: {format_currency(coins)}\n"
                             
                             st.info(breakdown)
                     else:
@@ -564,7 +569,7 @@ def inventory_management():
         st.metric("📊 Total Stock Units", f"{total_stock:,}")
     with col3:
         total_value = (inventory['unit_price'] * inventory['stock_quantity']).sum() if not inventory.empty else 0
-        st.metric("💰 Inventory Value", f"${total_value:,.2f}")
+        st.metric("💰 Inventory Value", format_currency(total_value))
     with col4:
         low_stock_count = len(inventory[inventory['stock_quantity'] <= inventory['reorder_level']]) if not inventory.empty else 0
         st.metric("⚠️ Low Stock Items", low_stock_count)
@@ -626,7 +631,7 @@ def inventory_management():
             with col1:
                 product_name = st.text_input("Product Name")
                 category = st.selectbox("Category", ["Electronics", "Clothing", "Food", "Books", "Home", "Sports", "Other"])
-                unit_price = st.number_input("Unit Price ($)", min_value=0.01, value=10.00)
+                unit_price = st.number_input("Unit Price (M)", min_value=0.01, value=10.00)
             
             with col2:
                 stock_quantity = st.number_input("Initial Stock Quantity", min_value=0, value=100)
@@ -697,9 +702,11 @@ def inventory_management():
             elif stock_filter == "Out of Stock":
                 filtered_inventory = filtered_inventory[filtered_inventory['stock_quantity'] == 0]
             
-            # Display inventory
+            # Display inventory with formatted prices
+            display_inventory = filtered_inventory[['product_name', 'category', 'unit_price', 'stock_quantity', 'reorder_level']].copy()
+            display_inventory['unit_price'] = display_inventory['unit_price'].apply(format_currency)
             st.dataframe(
-                filtered_inventory[['product_name', 'category', 'unit_price', 'stock_quantity', 'reorder_level']],
+                display_inventory,
                 width='stretch',
                 hide_index=True
             )
@@ -747,7 +754,7 @@ def inventory_management():
                         edit_category = st.selectbox("Category", 
                                                    ["Electronics", "Clothing", "Food", "Books", "Home", "Sports", "Other"],
                                                    index=["Electronics", "Clothing", "Food", "Books", "Home", "Sports", "Other"].index(current_product['category']) if current_product['category'] in ["Electronics", "Clothing", "Food", "Books", "Home", "Sports", "Other"] else 0)
-                        edit_price = st.number_input("Unit Price ($)", min_value=0.01, value=float(current_product['unit_price']))
+                        edit_price = st.number_input("Unit Price (M)", min_value=0.01, value=float(current_product['unit_price']))
                     
                     with col2:
                         edit_stock = st.number_input("Current Stock", min_value=0, value=int(current_product['stock_quantity']))
@@ -791,7 +798,7 @@ def inventory_management():
                     **Product Details:**
                     - Name: {product_to_remove['product_name']}
                     - Category: {product_to_remove['category']}
-                    - Price: ${product_to_remove['unit_price']:.2f}
+                    - Price: {format_currency(product_to_remove['unit_price'])}
                     - Stock: {product_to_remove['stock_quantity']} units
                     """)
                 
@@ -902,7 +909,7 @@ def sales_analytics():
     
     with col1:
         total_revenue = filtered_transactions['total_amount'].sum()
-        st.metric("💰 Total Revenue", f"${total_revenue:,.2f}")
+        st.metric("💰 Total Revenue", format_currency(total_revenue))
     
     with col2:
         total_transactions = len(filtered_transactions)
@@ -910,7 +917,7 @@ def sales_analytics():
     
     with col3:
         avg_transaction_value = filtered_transactions['total_amount'].mean()
-        st.metric("📊 Avg Transaction", f"${avg_transaction_value:.2f}")
+        st.metric("📊 Avg Transaction", format_currency(avg_transaction_value))
     
     with col4:
         total_items_sold = filtered_transactions['quantity'].sum()
@@ -1054,7 +1061,7 @@ def ai_insights():
         
         # Show prediction summary
         total_predicted = pred_df['predicted_sales'].sum()
-        st.info(f"📊 Total predicted revenue for next {prediction_days} days: ${total_predicted:,.2f}")
+        st.info(f"📊 Total predicted revenue for next {prediction_days} days: {format_currency(total_predicted)}")
         
     except Exception as e:
         st.error(f"Error generating sales predictions: {e}")
@@ -1293,7 +1300,7 @@ def main():
     
     # Footer
     st.sidebar.markdown("---")
-    st.sidebar.caption("© 2025 Horizon Enterprise - AI POS System")
+    st.sidebar.caption("© 2025 Horizon Enterprise - AI POS System | Lesotho")
 
 if __name__ == "__main__":
     main()
