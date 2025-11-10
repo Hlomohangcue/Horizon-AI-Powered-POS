@@ -246,7 +246,75 @@ def sales_interface():
         st.warning("No inventory data available. Please add products first in the Manager Interface.")
         return
     
-    # Sales form
+    # Quick Sale Mode Toggle
+    st.subheader("⚡ Sales Mode")
+    sale_mode = st.radio("Choose Transaction Mode:", 
+                        ["🛒 Regular Sale", "⚡ Quick Sale (Cash Only)"], 
+                        horizontal=True)
+    
+    if sale_mode == "⚡ Quick Sale (Cash Only)":
+        # Quick Sale Interface
+        st.markdown("### ⚡ Quick Cash Sale")
+        st.info("Perfect for busy periods - optimized for speed!")
+        
+        col1, col2, col3 = st.columns([2, 1, 2])
+        
+        with col1:
+            available_products = inventory[inventory['stock_quantity'] > 0]
+            product_options = available_products['product_name'].tolist()
+            quick_product = st.selectbox("🔍 Product", product_options, key="quick_product")
+        
+        with col2:
+            if quick_product:
+                product_data = available_products[available_products['product_name'] == quick_product].iloc[0]
+                quick_qty = st.number_input("Qty", min_value=1, max_value=int(product_data['stock_quantity']), value=1, key="quick_qty")
+        
+        with col3:
+            if quick_product:
+                quick_total = product_data['unit_price'] * quick_qty
+                quick_cash = st.number_input(f"Cash Received (Total: ${quick_total:.2f})", 
+                                           min_value=0.0, value=float(quick_total), step=0.01, key="quick_cash")
+                quick_change = quick_cash - quick_total
+        
+        # Quick process button
+        if quick_product and st.button("⚡ QUICK PROCESS", type="primary", key="quick_process"):
+            if quick_cash >= quick_total:
+                # Quick transaction
+                quick_transaction = {
+                    'transaction_id': f"QTXN_{datetime.now().strftime('%Y%m%d%H%M%S')}",
+                    'customer_id': f"WALK_IN_{datetime.now().strftime('%H%M%S')}",
+                    'customer_name': "Walk-in Customer",
+                    'product_id': product_data['product_id'],
+                    'product_name': quick_product,
+                    'category': product_data['category'],
+                    'quantity': quick_qty,
+                    'unit_price': product_data['unit_price'],
+                    'subtotal': quick_total,
+                    'discount_amount': 0,
+                    'total_amount': quick_total,
+                    'payment_method': 'Cash',
+                    'payment_received': quick_cash,
+                    'change_due': quick_change,
+                    'transaction_date': datetime.now().strftime('%Y-%m-%d'),
+                    'transaction_timestamp': datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
+                    'cashier': 'Quick Sale'
+                }
+                
+                # Update inventory
+                inventory.loc[inventory['product_name'] == quick_product, 'stock_quantity'] -= quick_qty
+                
+                # Save transaction
+                if save_transaction(quick_transaction) and save_inventory(inventory):
+                    st.success("✅ Quick sale completed!")
+                    if quick_change > 0:
+                        st.success(f"💰 **CHANGE: ${quick_change:.2f}**")
+                    st.cache_data.clear()
+            else:
+                st.error(f"❌ Insufficient cash! Need ${quick_total - quick_cash:.2f} more")
+        
+        st.markdown("---")
+        
+    # Regular Sales form
     with st.form("sales_form"):
         st.subheader("New Sale Transaction")
         
@@ -272,27 +340,90 @@ def sales_interface():
         
         with col2:
             # Transaction details
-            quantity = st.number_input("Quantity", min_value=1, max_value=int(product_data['stock_quantity']) if selected_product else 1)
-            payment_method = st.selectbox("Payment Method", ["Cash", "Credit Card", "Debit Card", "Mobile Payment"])
-            discount = st.number_input("Discount %", min_value=0.0, max_value=50.0, value=0.0)
-            
-            # Calculate totals
             if selected_product:
-                subtotal = product_data['unit_price'] * quantity
-                discount_amount = subtotal * (discount / 100)
-                total_amount = subtotal - discount_amount
+                quantity = st.number_input("Quantity", min_value=1, max_value=int(product_data['stock_quantity']), value=1)
                 
+                # Calculate subtotal
+                subtotal = product_data['unit_price'] * quantity
+                
+                # Discount options
+                discount_type = st.radio("Discount Type", ["Percentage", "Fixed Amount", "None"])
+                discount_amount = 0
+                
+                if discount_type == "Percentage":
+                    discount_percent = st.number_input("Discount %", min_value=0.0, max_value=50.0, value=0.0)
+                    discount_amount = subtotal * (discount_percent / 100)
+                elif discount_type == "Fixed Amount":
+                    discount_amount = st.number_input("Discount Amount $", min_value=0.0, max_value=float(subtotal), value=0.0)
+                
+                # Calculate total after discount
+                total_due = subtotal - discount_amount
+                
+                # Payment method
+                payment_method = st.selectbox("Payment Method", ["Cash", "Credit Card", "Debit Card", "Mobile Payment"])
+                
+                # Payment amount (only for cash)
+                payment_received = 0
+                change_due = 0
+                
+                if payment_method == "Cash":
+                    payment_received = st.number_input(
+                        f"Cash Received ($)", 
+                        min_value=0.0, 
+                        value=float(total_due),
+                        step=0.01,
+                        help="Enter the amount of cash received from customer"
+                    )
+                    change_due = payment_received - total_due
+                    
+                    if payment_received < total_due:
+                        st.error(f"❌ Insufficient payment! Need ${total_due - payment_received:.2f} more")
+                    elif change_due > 0:
+                        st.success(f"💰 Change due: ${change_due:.2f}")
+                    else:
+                        st.info("✅ Exact payment received")
+                else:
+                    payment_received = total_due  # For card payments, assume exact amount
+                    st.info("💳 Electronic payment - no change required")
+                
+                # Order Summary
+                st.markdown("---")
+                st.subheader("📋 Order Summary")
                 st.markdown(f"""
-                **Order Summary:**
-                - Subtotal: ${subtotal:.2f}
-                - Discount: ${discount_amount:.2f} ({discount}%)
-                - **Total: ${total_amount:.2f}**
+                **Product**: {selected_product}  
+                **Unit Price**: ${product_data['unit_price']:.2f}  
+                **Quantity**: {quantity}  
+                **Subtotal**: ${subtotal:.2f}  
+                **Discount**: ${discount_amount:.2f}  
+                **Total Due**: ${total_due:.2f}  
+                **Payment Method**: {payment_method}  
+                **Amount Received**: ${payment_received:.2f}  
+                **Change**: ${change_due:.2f}
                 """)
+                
+                # Store values for transaction processing
+                globals()['current_transaction'] = {
+                    'subtotal': subtotal,
+                    'discount_amount': discount_amount,
+                    'total_amount': total_due,
+                    'payment_received': payment_received,
+                    'change_due': change_due
+                }
         
         # Submit transaction
-        submitted = st.form_submit_button("🧾 Process Sale", type="primary")
+        submitted = st.form_submit_button("🧾 Process Sale", type="primary", 
+                                         disabled=selected_product is None or 
+                                         (payment_method == "Cash" and payment_received < total_due if 'total_due' in locals() and 'payment_received' in locals() else False))
         
         if submitted and selected_product:
+            # Get transaction data from globals (stored above)
+            trans_data = globals().get('current_transaction', {})
+            
+            # Validate payment for cash transactions
+            if payment_method == "Cash" and trans_data.get('change_due', 0) < 0:
+                st.error("❌ Cannot process sale - insufficient payment received!")
+                return
+            
             # Create transaction record
             transaction_data = {
                 'transaction_id': f"TXN_{datetime.now().strftime('%Y%m%d%H%M%S')}",
@@ -303,10 +434,12 @@ def sales_interface():
                 'category': product_data['category'],
                 'quantity': quantity,
                 'unit_price': product_data['unit_price'],
-                'subtotal': subtotal,
-                'discount_amount': discount_amount,
-                'total_amount': total_amount,
+                'subtotal': trans_data.get('subtotal', 0),
+                'discount_amount': trans_data.get('discount_amount', 0),
+                'total_amount': trans_data.get('total_amount', 0),
                 'payment_method': payment_method,
+                'payment_received': trans_data.get('payment_received', 0),
+                'change_due': trans_data.get('change_due', 0),
                 'transaction_date': datetime.now().strftime('%Y-%m-%d'),
                 'transaction_timestamp': datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
                 'cashier': st.session_state.get('user_name', 'Sales Assistant')
@@ -323,22 +456,73 @@ def sales_interface():
                 # Show receipt
                 st.markdown("---")
                 st.subheader("🧾 Receipt")
-                st.markdown(f"""
-                **Horizon Enterprise**  
-                Transaction ID: {transaction_data['transaction_id']}  
-                Date: {transaction_data['transaction_timestamp']}  
-                Customer: {customer_name} ({customer_id})  
                 
-                **Items:**
-                - {selected_product} x {quantity} @ ${product_data['unit_price']:.2f} = ${subtotal:.2f}
-                - Discount: -${discount_amount:.2f}
+                # Highlight change due if cash payment
+                if payment_method == "Cash" and transaction_data['change_due'] > 0:
+                    st.success(f"💰 **CHANGE DUE: ${transaction_data['change_due']:.2f}**")
                 
-                **Total: ${total_amount:.2f}**  
-                Payment: {payment_method}  
-                Cashier: {transaction_data['cashier']}
+                receipt_content = f"""
+                **🏪 HORIZON ENTERPRISE**  
+                📍 Your Trusted POS System  
+                ═══════════════════════════════════
                 
-                Thank you for shopping with Horizon Enterprise!
-                """)
+                **Transaction Details:**  
+                🆔 Transaction ID: {transaction_data['transaction_id']}  
+                📅 Date: {transaction_data['transaction_timestamp']}  
+                👤 Customer: {customer_name} ({customer_id})  
+                👨‍💼 Cashier: {transaction_data['cashier']}
+                
+                ═══════════════════════════════════
+                **ITEMS PURCHASED:**
+                📦 {selected_product}  
+                    💰 ${transaction_data['unit_price']:.2f} × {quantity} = ${transaction_data['subtotal']:.2f}
+                
+                ───────────────────────────────────
+                💵 Subtotal: ${transaction_data['subtotal']:.2f}  
+                🏷️ Discount: -${transaction_data['discount_amount']:.2f}  
+                **💳 TOTAL DUE: ${transaction_data['total_amount']:.2f}**
+                
+                ═══════════════════════════════════
+                **PAYMENT DETAILS:**  
+                💼 Method: {payment_method}  
+                💵 Received: ${transaction_data['payment_received']:.2f}  
+                💰 Change: ${transaction_data['change_due']:.2f}
+                
+                ═══════════════════════════════════
+                ✨ Thank you for shopping with us! ✨  
+                🔄 Please keep this receipt for returns  
+                📞 Support: horizon-support@email.com
+                """
+                
+                st.markdown(receipt_content)
+                
+                # Cash handling instructions for sales assistant
+                if payment_method == "Cash":
+                    if transaction_data['change_due'] > 0:
+                        st.info(f"💡 **Sales Assistant:** Give ${transaction_data['change_due']:.2f} change to customer")
+                        
+                        # Suggest change breakdown for large amounts
+                        if transaction_data['change_due'] >= 20:
+                            change = transaction_data['change_due']
+                            bills_20 = int(change // 20)
+                            change %= 20
+                            bills_10 = int(change // 10)
+                            change %= 10
+                            bills_5 = int(change // 5)
+                            change %= 5
+                            bills_1 = int(change // 1)
+                            coins = change % 1
+                            
+                            breakdown = "💵 **Suggested Change Breakdown:**\n"
+                            if bills_20 > 0: breakdown += f"• ${20} bills: {bills_20}\n"
+                            if bills_10 > 0: breakdown += f"• ${10} bills: {bills_10}\n" 
+                            if bills_5 > 0: breakdown += f"• ${5} bills: {bills_5}\n"
+                            if bills_1 > 0: breakdown += f"• ${1} bills: {bills_1}\n"
+                            if coins > 0: breakdown += f"• Coins: ${coins:.2f}\n"
+                            
+                            st.info(breakdown)
+                    else:
+                        st.success("✅ **Exact payment received - no change needed**")
                 
                 # Clear cache to refresh data
                 st.cache_data.clear()
@@ -609,10 +793,6 @@ def ai_insights():
     # Load AI models
     models = load_ai_models()
     
-    if not models:
-        st.warning("AI models are not available. Please train the models first.")
-        return
-    
     # Load data
     inventory, transactions, customers = load_data()
     
@@ -620,106 +800,252 @@ def ai_insights():
         st.warning("No transaction data available for AI insights.")
         return
     
-    # Sales Prediction
-    if 'sales_predictor' in models:
-        st.subheader("📈 Sales Predictions")
-        
-        col1, col2 = st.columns(2)
-        with col1:
-            prediction_days = st.slider("Predict for next N days", 1, 30, 7)
-        
-        try:
-            # Generate prediction data
-            future_dates = pd.date_range(
-                start=transactions['transaction_date'].max() + timedelta(days=1),
-                periods=prediction_days,
-                freq='D'
-            )
-            
-            predictions = []
-            for date in future_dates:
-                # Create sample data for prediction
-                sample_data = pd.DataFrame({
-                    'transaction_date': [date],
-                    'product_category': ['Electronics'],  # Default category
-                    'unit_price': [transactions['unit_price'].mean()],
-                    'customer_id': [1]
-                })
-                
-                pred = models['sales_predictor'].predict_sales(sample_data)
-                predictions.append({'date': date, 'predicted_sales': pred[0] if len(pred) > 0 else 0})
-            
-            pred_df = pd.DataFrame(predictions)
-            
-            # Plot predictions
-            fig = px.line(pred_df, x='date', y='predicted_sales',
-                         title=f"Sales Forecast for Next {prediction_days} Days")
-            st.plotly_chart(fig, width='stretch')
-            
-        except Exception as e:
-            st.error(f"Error generating sales predictions: {e}")
+    # Sales Prediction (Statistical-based)
+    st.subheader("📈 Sales Predictions")
     
-    # Customer Segmentation
-    if 'customer_segmentation' in models:
-        st.subheader("👥 Customer Segmentation")
-        
-        try:
-            # Get customer segments
-            customer_data = transactions.groupby('customer_id').agg({
-                'total_amount': 'sum',
-                'transaction_date': 'count'
-            }).reset_index()
-            
-            segments = models['customer_segmentation'].predict_segment(customer_data)
-            customer_data['segment'] = segments
-            
-            # Display segment distribution
-            segment_counts = pd.Series(segments).value_counts()
-            fig = px.pie(values=segment_counts.values, names=segment_counts.index,
-                        title="Customer Segment Distribution")
-            st.plotly_chart(fig, width='stretch')
-            
-            # Show segment details
-            st.dataframe(customer_data.head(20), width='stretch')
-            
-        except Exception as e:
-            st.error(f"Error in customer segmentation: {e}")
+    col1, col2 = st.columns(2)
+    with col1:
+        prediction_days = st.slider("Predict for next N days", 1, 30, 7)
     
-    # Fraud Detection
-    if 'fraud_detector' in models:
-        st.subheader("🛡️ Fraud Detection")
+    try:
+        # Statistical-based prediction using historical trends
+        transactions['transaction_date'] = pd.to_datetime(transactions['transaction_date'])
         
-        try:
-            # Check recent transactions for fraud
-            recent_transactions = transactions.tail(20)
-            fraud_scores = models['fraud_detector'].detect_fraud(recent_transactions)
+        # Calculate daily sales averages
+        daily_sales = transactions.groupby('transaction_date')['total_amount'].sum()
+        recent_avg = daily_sales.tail(7).mean()  # Last 7 days average
+        overall_avg = daily_sales.mean()
+        trend_factor = recent_avg / overall_avg if overall_avg > 0 else 1
+        
+        # Generate predictions based on trends
+        future_dates = pd.date_range(
+            start=transactions['transaction_date'].max() + timedelta(days=1),
+            periods=prediction_days,
+            freq='D'
+        )
+        
+        predictions = []
+        for i, date in enumerate(future_dates):
+            # Add some seasonal variation
+            day_of_week = date.dayofweek
+            weekend_factor = 1.3 if day_of_week in [5, 6] else 1.0
             
-            recent_transactions['fraud_risk'] = fraud_scores
-            recent_transactions['risk_level'] = pd.cut(
-                recent_transactions['fraud_risk'], 
-                bins=[0, 0.3, 0.7, 1.0], 
-                labels=['Low', 'Medium', 'High']
-            )
+            predicted_sales = recent_avg * trend_factor * weekend_factor
+            # Add slight random variation
+            predicted_sales *= (0.9 + 0.2 * (i % 3) / 3)  # ±10% variation
             
-            # Display fraud risk distribution
-            risk_counts = recent_transactions['risk_level'].value_counts()
-            fig = px.bar(x=risk_counts.index, y=risk_counts.values,
-                        title="Fraud Risk Distribution (Recent 20 Transactions)",
-                        color=risk_counts.index,
-                        color_discrete_map={'Low': 'green', 'Medium': 'orange', 'High': 'red'})
-            st.plotly_chart(fig, width='stretch')
-            
-            # Show high-risk transactions
-            high_risk = recent_transactions[recent_transactions['risk_level'] == 'High']
-            if not high_risk.empty:
-                st.warning("⚠️ High-risk transactions detected!")
-                st.dataframe(high_risk[['transaction_id', 'customer_id', 'total_amount', 'fraud_risk']], 
-                           width='stretch')
+            predictions.append({'date': date, 'predicted_sales': predicted_sales})
+        
+        pred_df = pd.DataFrame(predictions)
+        
+        # Plot predictions
+        fig = px.line(pred_df, x='date', y='predicted_sales',
+                     title=f"Sales Forecast for Next {prediction_days} Days (Trend-based)")
+        st.plotly_chart(fig, width='stretch')
+        
+        # Show prediction summary
+        total_predicted = pred_df['predicted_sales'].sum()
+        st.info(f"📊 Total predicted revenue for next {prediction_days} days: ${total_predicted:,.2f}")
+        
+    except Exception as e:
+        st.error(f"Error generating sales predictions: {e}")
+    
+    # Customer Segmentation (RFM-based)
+    st.subheader("👥 Customer Segmentation")
+    
+    try:
+        # Calculate RFM metrics
+        transactions['transaction_date'] = pd.to_datetime(transactions['transaction_date'])
+        current_date = transactions['transaction_date'].max()
+        
+        rfm_data = transactions.groupby('customer_id').agg({
+            'transaction_date': lambda x: (current_date - x.max()).days,  # Recency
+            'total_amount': ['count', 'sum']  # Frequency and Monetary
+        }).round(2)
+        
+        rfm_data.columns = ['Recency', 'Frequency', 'Monetary']
+        rfm_data = rfm_data.reset_index()
+        
+        # Simple segmentation based on RFM quartiles
+        rfm_data['R_Score'] = pd.qcut(rfm_data['Recency'], 4, labels=[4, 3, 2, 1])
+        rfm_data['F_Score'] = pd.qcut(rfm_data['Frequency'].rank(method='first'), 4, labels=[1, 2, 3, 4])
+        rfm_data['M_Score'] = pd.qcut(rfm_data['Monetary'], 4, labels=[1, 2, 3, 4])
+        
+        # Create segments
+        rfm_data['RFM_Score'] = rfm_data['R_Score'].astype(str) + rfm_data['F_Score'].astype(str) + rfm_data['M_Score'].astype(str)
+        
+        # Classify into segments
+        def classify_customers(row):
+            if row['RFM_Score'] in ['444', '443', '434', '344']:
+                return 'Champions'
+            elif row['RFM_Score'] in ['343', '334', '333', '342']:
+                return 'Loyal Customers'
+            elif row['RFM_Score'] in ['431', '341', '331', '321']:
+                return 'Potential Loyalists'
+            elif row['RFM_Score'] in ['241', '231', '221', '142']:
+                return 'At Risk'
             else:
-                st.success("✅ No high-risk transactions detected")
+                return 'Others'
+        
+        rfm_data['Segment'] = rfm_data.apply(classify_customers, axis=1)
+        
+        # Display segment distribution
+        segment_counts = rfm_data['Segment'].value_counts()
+        fig = px.pie(values=segment_counts.values, names=segment_counts.index,
+                    title="Customer Segment Distribution (RFM Analysis)")
+        st.plotly_chart(fig, width='stretch')
+        
+        # Show segment details
+        segment_summary = rfm_data.groupby('Segment').agg({
+            'Recency': 'mean',
+            'Frequency': 'mean', 
+            'Monetary': 'mean'
+        }).round(2)
+        
+        st.subheader("Segment Summary")
+        st.dataframe(segment_summary, width='stretch')
+        
+        # Show top customers
+        st.subheader("Top Customers by Segment")
+        top_customers = rfm_data.nlargest(10, 'Monetary')[['customer_id', 'Segment', 'Recency', 'Frequency', 'Monetary']]
+        st.dataframe(top_customers, width='stretch')
+        
+    except Exception as e:
+        st.error(f"Error in customer segmentation: {e}")
+    
+    # Fraud Detection (Rule-based)
+    st.subheader("🛡️ Fraud Detection")
+    
+    try:
+        # Rule-based fraud detection
+        recent_transactions = transactions.tail(20).copy()
+        
+        # Calculate fraud risk based on business rules
+        def calculate_fraud_risk(row):
+            risk_score = 0
+            
+            # High amount transactions
+            if row['total_amount'] > transactions['total_amount'].quantile(0.95):
+                risk_score += 0.3
+            
+            # Large quantity purchases
+            if row['quantity'] > transactions['quantity'].quantile(0.9):
+                risk_score += 0.2
+            
+            # Large discount (might indicate employee fraud)
+            if row['discount_amount'] > row['subtotal'] * 0.2:
+                risk_score += 0.3
+            
+            # Cash transactions above certain threshold
+            if row['payment_method'] == 'Cash' and row['total_amount'] > 1000:
+                risk_score += 0.2
+            
+            return min(risk_score, 1.0)  # Cap at 1.0
+        
+        recent_transactions['fraud_risk'] = recent_transactions.apply(calculate_fraud_risk, axis=1)
+        recent_transactions['risk_level'] = pd.cut(
+            recent_transactions['fraud_risk'], 
+            bins=[-0.1, 0.3, 0.6, 1.0], 
+            labels=['Low', 'Medium', 'High']
+        )
+        
+        # Display fraud risk distribution
+        risk_counts = recent_transactions['risk_level'].value_counts()
+        fig = px.bar(x=risk_counts.index, y=risk_counts.values,
+                    title="Fraud Risk Distribution (Recent 20 Transactions)",
+                    color=risk_counts.index,
+                    color_discrete_map={'Low': 'green', 'Medium': 'orange', 'High': 'red'})
+        st.plotly_chart(fig, width='stretch')
+        
+        # Show high-risk transactions
+        high_risk = recent_transactions[recent_transactions['risk_level'] == 'High']
+        if not high_risk.empty:
+            st.warning("⚠️ High-risk transactions detected!")
+            st.dataframe(high_risk[['transaction_id', 'customer_id', 'total_amount', 'payment_method', 'fraud_risk']], 
+                       width='stretch')
+        else:
+            st.success("✅ No high-risk transactions detected in recent activity")
+        
+        # Fraud detection summary
+        avg_risk = recent_transactions['fraud_risk'].mean()
+        st.info(f"📊 Average fraud risk score: {avg_risk:.2f}")
+        
+        # Show fraud detection rules
+        with st.expander("🔍 Fraud Detection Rules"):
+            st.write("""
+            **Current fraud detection rules:**
+            - High amount transactions (>95th percentile): +30% risk
+            - Large quantity purchases (>90th percentile): +20% risk  
+            - Large discounts (>20% of subtotal): +30% risk
+            - Cash transactions >$1000: +20% risk
+            """)
+            
+    except Exception as e:
+        st.error(f"Error in fraud detection: {e}")
+    
+    # Additional AI Insights
+    st.subheader("🧠 Business Intelligence Insights")
+    
+    col1, col2 = st.columns(2)
+    
+    with col1:
+        st.subheader("📊 Product Performance")
+        try:
+            # Product performance analysis
+            product_performance = transactions.groupby('product_name').agg({
+                'total_amount': 'sum',
+                'quantity': 'sum',
+                'transaction_id': 'count'
+            }).sort_values('total_amount', ascending=False)
+            product_performance.columns = ['Revenue', 'Units Sold', 'Transactions']
+            
+            st.dataframe(product_performance.head(10), width='stretch')
+            
+        except Exception as e:
+            st.error(f"Error in product analysis: {e}")
+    
+    with col2:
+        st.subheader("💡 Recommendations")
+        try:
+            # Generate business recommendations
+            recommendations = []
+            
+            # Low stock recommendations
+            if not inventory.empty:
+                low_stock = inventory[inventory['stock_quantity'] <= inventory['reorder_level']]
+                if not low_stock.empty:
+                    recommendations.append(f"🔄 Reorder {len(low_stock)} products running low on stock")
+            
+            # Sales recommendations
+            if not transactions.empty:
+                avg_transaction = transactions['total_amount'].mean()
+                recent_avg = transactions.tail(10)['total_amount'].mean()
+                if recent_avg < avg_transaction * 0.9:
+                    recommendations.append("📈 Recent sales below average - consider promotions")
+                
+                # Payment method insights
+                payment_dist = transactions['payment_method'].value_counts()
+                if 'Cash' in payment_dist and payment_dist['Cash'] > len(transactions) * 0.5:
+                    recommendations.append("💳 Consider promoting digital payment methods")
+            
+            # Customer recommendations
+            if not transactions.empty:
+                customer_freq = transactions.groupby('customer_id').size()
+                repeat_customers = (customer_freq > 1).sum()
+                total_customers = customer_freq.count()
+                repeat_rate = repeat_customers / total_customers if total_customers > 0 else 0
+                
+                if repeat_rate < 0.3:
+                    recommendations.append("👥 Focus on customer retention programs")
+            
+            if recommendations:
+                for rec in recommendations:
+                    st.info(rec)
+            else:
+                st.success("✅ All key metrics look healthy!")
                 
         except Exception as e:
-            st.error(f"Error in fraud detection: {e}")
+            st.error(f"Error generating recommendations: {e}")
 
 def main():
     """Main application"""
