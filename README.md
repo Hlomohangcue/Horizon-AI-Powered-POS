@@ -1,41 +1,80 @@
-# Horizon AI-Powered POS System
+# 🏪 Horizon AI-Powered POS System
+*AI for Software Engineering - Week 5 Assignment*
 
-## Overview
-An intelligent Point of Sale system that leverages machine learning to predict customer behavior, optimize inventory, and detect fraud in real-time.
+## 📋 Assignment Overview
+**Student:** [Your Name]  
+**Course:** AI for Software Engineering  
+**Assignment:** Week 5 - AI-Powered Business Application  
+**Date:** November 10, 2025  
+**Currency:** Lesotho Maloti (LSL) 🇱🇸
 
-## Features
-- 🤖 AI-powered sales prediction
-- 📊 Customer behavior analysis and segmentation
-- 🛡️ Real-time fraud detection
-- 📈 Inventory optimization recommendations
-- 🎯 Personalized product recommendations
+## 🎯 Project Description
+A comprehensive Point of Sale (POS) system designed for Horizon Enterprise in Lesotho, featuring AI-powered analytics, inventory management, and sales processing with complete Streamlit web interface.
 
-## Architecture
+## ✨ Key Features
+
+### 🏪 Core POS Functionality
+- **Sales Processing:** Complete transaction management with change calculation
+- **Inventory Management:** Real-time stock tracking and management
+- **Receipt Generation:** Professional digital receipts with Maloti currency
+- **Multi-Role Interface:** Separate dashboards for sales assistants and managers
+
+### 🤖 AI-Powered Intelligence
+- **Sales Prediction:** Machine learning-based revenue forecasting
+- **Customer Segmentation:** RFM analysis for customer insights
+- **Fraud Detection:** Real-time transaction risk assessment
+- **Business Analytics:** Comprehensive sales and inventory analytics
+
+### 💰 Lesotho-Specific Features
+- **Currency:** All pricing in Lesotho Maloti (M XXX.XX format)
+- **Local Context:** Designed for Lesotho business environment
+- **Change Breakdown:** Maloti bill denominations (M 20, M 10, M 5, M 1)
+
+## 🏗️ System Architecture
+
 ```
+horizon-ai-pos/
+├── streamlit_app.py              # Main web application
 ├── src/
-│   ├── ai_models/          # Machine learning models
-│   ├── data_processing/    # Data preprocessing utilities
-│   ├── pos_system/         # Core POS functionality
-│   └── api/               # REST API endpoints
-├── models/                # Trained model files
-├── data/                 # Sample datasets
-├── tests/                # Unit and integration tests
-└── docs/                 # Documentation
+│   ├── ai_models/                # AI/ML Components
+│   │   ├── sales_predictor.py    # Sales forecasting model
+│   │   ├── customer_segmentation.py # RFM customer analysis
+│   │   └── fraud_detector_fixed.py  # Fraud detection system
+│   └── pos_system/               # Core POS Logic
+│       ├── pos_interface.py      # Terminal-based interface
+│       └── enhanced_pos_interface.py # Enhanced features
+├── data/                         # CSV Data Storage
+│   ├── inventory.csv            # Product inventory
+│   ├── transactions.csv         # Sales transactions
+│   └── customers.csv            # Customer database
+├── tests/                       # Test Suite
+├── requirements.txt             # Python dependencies
+└── README.md                   # This documentation
 ```
 
-## Installation
+## 🚀 Installation & Setup
 
+### Prerequisites
+- Python 3.11+
+- Streamlit 1.28+
+- Pandas, NumPy, Scikit-learn, Plotly
+
+### Quick Start
 ```bash
-# Clone the repository
-git clone https://github.com/your-username/horizon-ai-pos.git
-cd horizon-ai-pos
+# 1. Clone the repository
+git clone https://github.com/Hlomohangcue/Horizon-AI-Powered-POS.git
+cd Horizon-AI-Powered-POS
 
-# Install dependencies
+# 2. Install dependencies
 pip install -r requirements.txt
 
-# Run the application
-python src/main.py
+# 3. Run the application
+streamlit run streamlit_app.py
 ```
+
+### Access the Application
+- **Web Interface:** http://localhost:8501
+- **Features:** Sales, Inventory, Analytics, AI Insights
 
 ## Usage
 
