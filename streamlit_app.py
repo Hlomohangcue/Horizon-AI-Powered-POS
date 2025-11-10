@@ -474,7 +474,7 @@ def sales_interface():
                 total_due = subtotal - discount_amount
                 
                 # Payment method
-                payment_method = st.selectbox("Payment Method", ["Cash", "Credit Card", "Debit Card", "Mobile Payment"])
+                payment_method = st.selectbox("Payment Method", ["Cash", "Mobile Payment"])
                 
                 # Payment amount (only for cash)
                 payment_received = 0
